@@ -1,6 +1,6 @@
-# Wobb Frontend Assignment
+# Wobb Frontend Assignment — Submission
 
-A starter influencer search application built with **React**, **TypeScript**, **Vite**, and **Tailwind CSS**. This project is intentionally left in a rough-but-working state for candidates to improve.
+Influencer search app built with React 19, TypeScript, Vite, Tailwind CSS, and Zustand.
 
 ## Getting Started
 
@@ -9,72 +9,95 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) to view the app.
+Open [http://localhost:5173](http://localhost:5173).
 
-## What's Included
+```bash
+npm run build   # production build (passes clean)
+npm run lint    # ESLint (passes clean)
+```
 
-- **Search / Dashboard** — filter influencers by platform (Instagram, YouTube, TikTok) and search by username or full name
-- **Profile Details** — click a profile to view extended data loaded from individual JSON files
-- **Routing** — `react-router-dom` with `/` (search) and `/profile/:username` (details)
+## What changed
 
-Sample data lives in:
+### 1. Bugs fixed
 
-- `src/assets/data/search/` — platform search results (10 profiles each)
-- `src/assets/data/profiles/` — detailed profile JSON per username
+- **`npm install` was broken.** `react-beautiful-dnd` was listed as a dependency but never imported anywhere in `src/`, and its peer-dependency range is incompatible with React 19 — `npm install` failed outright. Removed it.
+- **Search was inconsistent.** Username matching was case-sensitive while fullname matching wasn't, so e.g. `"Cristiano"` (capital C) wouldn't match `@cristiano`. Both fields now use the same case-insensitive comparison.
+- **Engagement Rate showed the wrong number.** The detail page computed `rate * 10000` inline instead of using the existing (correct) `rate * 100` formatter — off by 100x.
+- **"Engagements" stat was wrong.** It called the engagement-*rate* formatter on the engagement-rate value again instead of formatting the actual `engagements` count.
+- **Some sample profiles rendered `@undefined`.** A few YouTube records in the sample data only have a `handle` field, not `username`. Card and routing logic now fall back to `handle`, then `user_id`, so nothing renders as `undefined` and every profile link resolves.
+- **Both `<img>` tags had no `alt` attribute** (accessibility/lint issue). Added descriptive alt text everywhere, plus a graceful fallback UI for broken image URLs.
+- **Stale data flash on fast navigation.** The profile detail page's data-loading effect never reset its "loaded" state when the route's `username` changed, so navigating quickly from one profile to another could briefly show the previous profile's stats. Loading state is now derived from whether the loaded result matches the current route param, with a cancellation guard against out-of-order async responses.
+- **`target="_blank"` link missing `rel="noopener noreferrer"`** on the external profile link.
+- Follower-count formatting was duplicated in three places with slightly different rounding; consolidated into one helper (`src/lib/format.ts`).
 
-## How to Submit
+### 2. UI/UX redesign
 
-1. **Download or clone** this starter project to your machine.
-2. **Create a new repository** on your own GitHub account. Do not fork the original assignment repo — push your work to a repo you own.
-3. Complete the tasks below and push your changes to that repository.
-4. **Share the public GitHub repository URL** with us as your submission.
+Full visual redesign: sticky header with a live shortlist count badge, tab-style platform switcher with icons, debounced search input with clear button, a responsive card grid (1/2/3 columns depending on viewport), skeleton loading states, an empty-state component (no results, empty shortlist), and keyboard-accessible cards (`role="button"`, Enter/Space support, visible focus rings throughout).
 
-### Deadline (strict)
+### 3. React Context → Zustand
 
-- **Due:** **2 July 2026, 2:00 PM IST** (Indian Standard Time, UTC+5:30)
-- **Any git commits made after this deadline will disqualify your submission.** We will only consider the repository state as of the deadline; late commits will not be reviewed.
-- Make sure your final work is pushed **before** the cutoff.
+The brief specifies using Zustand for the list state management (rather than Context). `src/store/shortlistStore.ts` holds shortlist entries in a `Record` keyed by `platform:username` for O(1) duplicate checks, exposes `add` / `remove` / `toggle` / `isShortlisted`, and uses Zustand's `persist` middleware to back the store with `localStorage` — no manual serialization code needed.
 
-## AI Usage
+### 4. "Select Profile & Add to List" feature
 
-You may use any AI tools (Cursor, ChatGPT, Claude, GitHub Copilot, etc.). We are evaluating your final solution and engineering decisions.
+- **Add to List** button (now functional) on every card and on the detail page, sourced from the Zustand store.
+- **Duplicate prevention**: keyed storage means re-adding the same profile is a no-op; the button instead acts as a toggle.
+- **`/shortlist` page**: lists every saved profile with platform, follower count, and a remove action; shows a friendly empty state with a link back to search when nothing's saved.
+- **Persistent across refresh**: backed by `localStorage` via Zustand's `persist` middleware — verified manually (add → refresh → still present).
 
-## Your Tasks
+### 5. Code quality / structure
 
-Complete the following as part of your submission:
+```
+src/
+  components/
+    layout/     Header, Layout
+    profile/    ProfileAvatar, ProfileCard, ProfileGrid
+    search/     PlatformTabs, SearchInput
+    shortlist/  ShortlistButton
+    ui/         EmptyState, Skeleton, VerifiedBadge
+  hooks/        useDebouncedValue
+  lib/          format.ts, platform.ts, profiles.ts, profileLoader.ts
+  store/        shortlistStore.ts (Zustand)
+  pages/        SearchPage, ProfileDetailPage, ShortlistPage
+  types/        index.ts
+```
 
-1. **Find and fix all bugs and quality issues** — the codebase contains intentional bugs and quality issues. Identify and resolve them.
+Replaces the original flat `components/` + `utils/` layout, where formatting and data logic were duplicated across files. TypeScript `strict` mode is now enabled in `tsconfig.app.json` (it wasn't on before).
 
-2. **Completely redesign the UI/UX** — replace the basic layout with a polished, modern interface. Focus on usability, visual hierarchy, and delight.
+### 6. Performance
 
-3. **Replace React Context with Zustand** — when you implement state management for the selected list, use [Zustand](https://github.com/pmndrs/zustand) instead of React Context.
+- `ProfileCard` is wrapped in `React.memo` so re-renders are scoped to cards whose props actually changed, not the whole grid on every keystroke.
+- Search input is debounced (200ms) before filtering runs.
+- `useMemo` for the per-platform profile list and the filtered result, so switching platforms or typing doesn't redo work unnecessarily.
+- Routes are still code-split per the existing Vite/React Router setup; JSON profile data is lazy-loaded per-profile via `import.meta.glob`, unchanged from the original (already a reasonable pattern).
 
-4. **Implement "Select profile & Add to List"** — the disabled "Add to List" button is a stub. Build the full feature:
-   - Select / add profiles to a persistent list
-   - View and manage the selected list
-   - Handle duplicates appropriately
+### 7. Libraries added
 
-5. **Improve code quality and project structure** — refactor as needed, add proper types, and follow React best practices.
+| Library | Why |
+|---|---|
+| `zustand` | Required by the brief for shortlist state management. |
+| `lucide-react` | Icon set for the redesigned UI (search, bookmark, platform icons, etc). |
+| `clsx` | Small utility for conditional className strings. |
 
-6. **Optimize performance** — apply sensible optimizations where appropriate.
+No UI kit (e.g. shadcn) was added on top of Tailwind — the surface area of this app didn't justify the extra dependency weight.
 
-7. **Use any libraries you need** — you are not limited to the current stack. Choose tools that help you deliver a great result (UI kits, state managers, testing libraries, etc.).
+## Assumptions
 
-## Scripts
+- The sample data is the only data source; no real API integration was assumed or added.
+- "Persistent after page refresh" was interpreted as `localStorage` persistence (no backend in this assignment), which is also what Zustand's `persist` middleware is built for.
+- Where sample data was inconsistent (missing `username`), I normalized at the data-access layer (`src/lib/profiles.ts`) rather than special-casing it in components, so the rest of the app never has to think about it.
+- Brand icons (Instagram/YouTube/TikTok glyphs) aren't included in the current `lucide-react` release, so generic camera/video/music icons are used as platform indicators instead, paired with text labels.
 
-| Command        | Description              |
-| -------------- | ------------------------ |
-| `npm run dev`  | Start development server |
-| `npm run build`| Production build         |
-| `npm run lint` | Run ESLint               |
+## Trade-offs
 
-## Submission Notes
+- No automated tests were added (bonus item) given the assignment's time box; manual verification was done for every flow described above (search, filter, navigate, add/remove from shortlist, refresh persistence, empty states, mobile layout).
+- No deployment was done as part of this submission (also a bonus item).
+- Kept routing/data-loading patterns from the starter (`react-router-dom`, `import.meta.glob` for profile JSON) rather than introducing a data-fetching library like TanStack Query, since the data here is static and local — adding a fetching layer would be complexity without benefit.
 
-- Document any assumptions or trade-offs in your README
-- Ensure `npm run build` passes before submitting
-- Focus on demonstrating your judgment — not every possible feature needs to be built, but the core assignment items should be addressed thoughtfully
-- Double-check that your repo is public (or that we have access) and that the link is included in your submission
-- Please make meaningful commits throughout your work. We may review your commit history.
-- **Bonus:** Deploying the app (e.g. Vercel, Netlify, GitHub Pages) is optional but will be considered a plus — include the live URL in your submission if you do
+## Remaining improvements (not done, given time)
 
-Good luck!
+- Automated tests (component + store unit tests) — flagged in the brief as bonus.
+- Deployment to Vercel/Netlify — flagged in the brief as bonus.
+- Animations/micro-interactions beyond basic transitions — flagged in the brief as bonus.
+- Sorting/filtering the shortlist (e.g. by platform, follower count) if the list grows large.
+- Drag-to-reorder shortlist (the removed `react-beautiful-dnd` dependency hints this may have been an original intent — could be revisited with a maintained alternative like `@dnd-kit/core` if desired).
