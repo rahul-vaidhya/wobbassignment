@@ -1,161 +1,146 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { Layout } from "@/components/Layout";
-import { VerifiedBadge } from "@/components/VerifiedBadge";
-import type { FullUserProfile, ProfileDetailResponse } from "@/types";
-import { formatEngagementRate } from "@/utils/formatters";
-import { loadProfileByUsername } from "@/utils/profileLoader";
+import { ArrowLeft, ExternalLink } from "lucide-react";
+import { Layout } from "@/components/layout/Layout";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
+import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
+import { ProfileDetailSkeleton } from "@/components/ui/Skeleton";
+import { ShortlistButton } from "@/components/shortlist/ShortlistButton";
+import type { FullUserProfile, Platform, ProfileDetailResponse } from "@/types";
+import { formatEngagementRate, formatNumber } from "@/lib/format";
+import { loadProfileByUsername } from "@/lib/profileLoader";
 
-function formatFollowersDetail(count: number) {
-  if (count >= 1000000) return (count / 1000000).toFixed(2) + "M";
-  if (count >= 1000) return (count / 1000).toFixed(1) + "K";
-  return String(count);
-}
+type LoadState =
+  | { status: "success"; username: string; data: ProfileDetailResponse }
+  | { status: "not-found"; username: string };
 
 export function ProfileDetailPage() {
   const { username } = useParams<{ username: string }>();
   const [searchParams] = useSearchParams();
-  const platform = searchParams.get("platform") || "unknown";
-  const [profileData, setProfileData] = useState<ProfileDetailResponse | null>(
-    null
-  );
-  const [loaded, setLoaded] = useState(false);
+  const platform = (searchParams.get("platform") as Platform | null) ?? "unknown";
+  const [state, setState] = useState<LoadState | null>(null);
 
   useEffect(() => {
     if (!username) return;
 
+    let cancelled = false;
     loadProfileByUsername(username).then((data) => {
-      setProfileData(data);
-      setLoaded(true);
+      if (cancelled) return; // guard against out-of-order responses
+      setState(
+        data ? { status: "success", username, data } : { status: "not-found", username }
+      );
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [username]);
+
+  // Derived (not stored) loading flag: if the loaded result doesn't match
+  // the current route param yet, we're still loading it. This avoids
+  // calling setState synchronously inside the effect just to flip a
+  // "loading" flag (which would otherwise cause stale-data flashes when
+  // navigating quickly between two profiles).
+  const isLoading = !state || state.username !== username;
 
   if (!username) {
     return (
       <Layout>
-        <p>Invalid profile</p>
-        <Link to="/">Back</Link>
-      </Layout>
-    );
-  }
-
-  if (!loaded) {
-    return (
-      <Layout title={`@${username}`}>
-        <p className="text-gray-400">Loading...</p>
-      </Layout>
-    );
-  }
-
-  if (!profileData) {
-    return (
-      <Layout title={`@${username}`}>
-        <p className="text-red-600 mb-4">
-          Could not load profile details for {username}
-        </p>
-        <Link to="/" className="text-blue-600 underline">
+        <p className="text-slate-600">Invalid profile.</p>
+        <Link to="/" className="text-violet-600 underline text-sm">
           Back to search
         </Link>
       </Layout>
     );
   }
 
-  const user: FullUserProfile = profileData.data.user_profile;
+  if (isLoading || !state) {
+    return (
+      <Layout title={`@${username}`}>
+        <ProfileDetailSkeleton />
+      </Layout>
+    );
+  }
+
+  if (state.status === "not-found") {
+    return (
+      <Layout title={`@${username}`}>
+        <p className="text-red-600 mb-4">
+          Could not load profile details for {username}.
+        </p>
+        <Link to="/" className="text-violet-600 underline text-sm inline-flex items-center gap-1">
+          <ArrowLeft className="w-4 h-4" /> Back to search
+        </Link>
+      </Layout>
+    );
+  }
+
+  const user: FullUserProfile = state.data.data.user_profile;
+
+  const stats: { label: string; value: string }[] = [
+    { label: "Followers", value: formatNumber(user.followers) },
+    { label: "Engagement Rate", value: formatEngagementRate(user.engagement_rate) },
+  ];
+  if (user.posts_count !== undefined) stats.push({ label: "Posts", value: formatNumber(user.posts_count) });
+  if (user.avg_likes !== undefined) stats.push({ label: "Avg Likes", value: formatNumber(user.avg_likes) });
+  if (user.avg_comments !== undefined) stats.push({ label: "Avg Comments", value: formatNumber(user.avg_comments) });
+  if (user.avg_views !== undefined && user.avg_views > 0) {
+    stats.push({ label: "Avg Views", value: formatNumber(user.avg_views) });
+  }
+  if (user.engagements !== undefined) stats.push({ label: "Engagements", value: formatNumber(user.engagements) });
 
   return (
-    <Layout title={user.fullname}>
-      <Link to="/" className="text-sm text-blue-600 mb-4 inline-block">
-        ← Back to search
+    <Layout>
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1 text-sm text-violet-600 hover:text-violet-700 mb-6"
+      >
+        <ArrowLeft className="w-4 h-4" /> Back to search
       </Link>
 
-      <div className="flex gap-6 items-start text-left max-w-2xl mx-auto">
-        <img
-          src={user.picture}
-          className="w-24 h-24 rounded-full border"
-        />
-        <div className="flex-1">
-          <h2 className="text-xl font-bold">
-            @{user.username}
-            <VerifiedBadge verified={user.is_verified} />
-          </h2>
-          <p className="text-gray-600">{user.fullname}</p>
-          <p className="text-xs text-gray-400 mt-1">Platform: {platform}</p>
+      <div className="bg-white border border-slate-200 rounded-2xl p-6">
+        <div className="flex flex-col sm:flex-row gap-6 items-start text-left">
+          <ProfileAvatar src={user.picture} name={user.fullname} sizeClassName="w-24 h-24" />
 
-          {user.description && (
-            <p className="mt-3 text-sm text-gray-700">{user.description}</p>
-          )}
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-1.5">
+              @{user.username}
+              <VerifiedBadge verified={user.is_verified} className="w-5 h-5" />
+            </h2>
+            <p className="text-slate-600">{user.fullname}</p>
+            {platform !== "unknown" && (
+              <p className="text-xs text-slate-400 mt-1 capitalize">Platform: {platform}</p>
+            )}
 
-          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div className="border p-2 rounded">
-              <div className="text-gray-500">Followers</div>
-              <div className="font-semibold">
-                {formatFollowersDetail(user.followers)}
-              </div>
+            {user.description && (
+              <p className="mt-3 text-sm text-slate-700">{user.description}</p>
+            )}
+
+            <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+              {stats.map((stat) => (
+                <div key={stat.label} className="border border-slate-200 rounded-xl p-3">
+                  <div className="text-slate-500 text-xs">{stat.label}</div>
+                  <div className="font-semibold text-slate-900 mt-0.5">{stat.value}</div>
+                </div>
+              ))}
             </div>
-            <div className="border p-2 rounded">
-              <div className="text-gray-500">Engagement Rate</div>
-              <div className="font-semibold">
-                {user.engagement_rate !== undefined
-                  ? (user.engagement_rate * 10000).toFixed(2) + "%"
-                  : "N/A"}
-              </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              {platform !== "unknown" && (
+                <ShortlistButton platform={platform} profile={user} variant="full" />
+              )}
+              {user.url && (
+                <a
+                  href={user.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-violet-600 hover:text-violet-700"
+                >
+                  View on platform <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
             </div>
-            {user.posts_count !== undefined && (
-              <div className="border p-2 rounded">
-                <div className="text-gray-500">Posts</div>
-                <div className="font-semibold">{user.posts_count}</div>
-              </div>
-            )}
-            {user.avg_likes !== undefined && (
-              <div className="border p-2 rounded">
-                <div className="text-gray-500">Avg Likes</div>
-                <div className="font-semibold">
-                  {formatFollowersDetail(user.avg_likes)}
-                </div>
-              </div>
-            )}
-            {user.avg_comments !== undefined && (
-              <div className="border p-2 rounded">
-                <div className="text-gray-500">Avg Comments</div>
-                <div className="font-semibold">{user.avg_comments}</div>
-              </div>
-            )}
-            {user.avg_views !== undefined && user.avg_views > 0 && (
-              <div className="border p-2 rounded">
-                <div className="text-gray-500">Avg Views</div>
-                <div className="font-semibold">
-                  {formatFollowersDetail(user.avg_views)}
-                </div>
-              </div>
-            )}
-            {user.engagements !== undefined && (
-              <div className="border p-2 rounded">
-                <div className="text-gray-500">Engagements</div>
-                <div className="font-semibold">
-                  {formatEngagementRate(user.engagement_rate)}
-                </div>
-              </div>
-            )}
           </div>
-
-          {user.url && (
-            <a
-              href={user.url}
-              target="_blank"
-              className="inline-block mt-4 text-blue-600 text-sm"
-            >
-              View on platform →
-            </a>
-          )}
-
-          {/* TODO: candidates must implement Add to List feature */}
-          {/* TODO: candidates must implement Add to List feature */}
-          <button
-            disabled
-            className="block mt-4 px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed"
-          >
-            Add to List
-          </button>
         </div>
       </div>
     </Layout>

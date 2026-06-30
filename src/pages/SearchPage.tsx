@@ -1,49 +1,46 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Platform } from "@/types";
-import { Layout } from "@/components/Layout";
-import { PlatformFilter } from "@/components/PlatformFilter";
-import { ProfileList } from "@/components/ProfileList";
-import { extractProfiles, filterProfiles } from "@/utils/dataHelpers";
+import { Layout } from "@/components/layout/Layout";
+import { PlatformTabs } from "@/components/search/PlatformTabs";
+import { SearchInput } from "@/components/search/SearchInput";
+import { ProfileGrid } from "@/components/profile/ProfileGrid";
+import { extractProfiles, filterProfiles } from "@/lib/profiles";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 export function SearchPage() {
   const [platform, setPlatform] = useState<Platform>("instagram");
   const [searchQuery, setSearchQuery] = useState("");
-  const [clickCount, setClickCount] = useState(0);
+  const debouncedQuery = useDebouncedValue(searchQuery, 200);
 
-  const allProfiles = extractProfiles(platform);
-  const filtered = filterProfiles(allProfiles, searchQuery);
+  // Re-computed only when the platform actually changes.
+  const allProfiles = useMemo(() => extractProfiles(platform), [platform]);
 
-  const handleProfileClick = (username: string) => {
-    setClickCount(clickCount + 1);
-    console.log("Clicked profile:", username, "total clicks:", clickCount);
+  // Re-computed only when the debounced query or the platform's profile list changes.
+  const filtered = useMemo(
+    () => filterProfiles(allProfiles, debouncedQuery),
+    [allProfiles, debouncedQuery]
+  );
+
+  const handlePlatformChange = (next: Platform) => {
+    setPlatform(next);
+    setSearchQuery("");
   };
 
   return (
-    <Layout title="Find Influencers">
-      <p className="text-gray-500 mb-4 text-sm">
-        Browse top creators across social platforms
-      </p>
+    <Layout
+      title="Find Influencers"
+      description="Browse top creators across social platforms and build your shortlist."
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <PlatformTabs selected={platform} onChange={handlePlatformChange} />
+        <SearchInput value={searchQuery} onChange={setSearchQuery} />
+      </div>
 
-      <PlatformFilter
-        selected={platform}
-        onChange={(p) => {
-          setPlatform(p);
-          setSearchQuery("");
-        }}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
-
-      <p className="text-xs text-gray-400 mb-2">
+      <p className="text-xs text-slate-400 mb-4">
         Showing {filtered.length} of {allProfiles.length} on {platform}
       </p>
 
-      <ProfileList
-        profiles={filtered}
-        platform={platform}
-        searchQuery={searchQuery}
-        onProfileClick={handleProfileClick}
-      />
+      <ProfileGrid profiles={filtered} platform={platform} />
     </Layout>
   );
 }
