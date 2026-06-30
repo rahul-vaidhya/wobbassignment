@@ -45,3 +45,12 @@ export interface ProfileDetailResponse {
     user_profile: FullUserProfile;
   };
 }
+
+/** An entry persisted in the user's shortlist. */
+export interface ShortlistEntry {
+  /** Stable unique key: `${platform}:${profile identifier}` */
+  key: string;
+  platform: Platform;
+  profile: UserProfileSummary;
+  addedAt: number;
+}
