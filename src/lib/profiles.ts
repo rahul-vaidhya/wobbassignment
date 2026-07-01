@@ -35,26 +35,6 @@ export function getProfileIdentifier(profile: UserProfileSummary): string {
   return profile.username || profile.handle || profile.user_id;
 }
 
-/**
- * Looks up a profile summary by its route identifier across all three
- * platforms' sample search lists. Used as a fallback on the detail page
- * when no matching full-detail JSON file exists in
- * `assets/data/profiles/` (only 6 of the 30 sample accounts have one) —
- * so we can still show *something* instead of a dead "not found" page.
- */
-export function findProfileSummary(
-  identifier: string
-): { platform: Platform; profile: UserProfileSummary } | null {
-  const platforms: Platform[] = ["instagram", "youtube", "tiktok"];
-  for (const platform of platforms) {
-    const match = extractProfiles(platform).find(
-      (p) => getProfileIdentifier(p) === identifier
-    );
-    if (match) return { platform, profile: match };
-  }
-  return null;
-}
-
 export function filterProfiles(
   profiles: UserProfileSummary[],
   query: string
@@ -67,4 +47,22 @@ export function filterProfiles(
     const matchFullname = p.fullname.toLowerCase().includes(normalized);
     return matchUsername || matchFullname;
   });
+}
+
+/**
+ * The sample dataset only ships a handful of full detail JSON files
+ * (see `profileLoader.ts`); most of the profiles surfaced in search are
+ * summary-only. Rather than dead-ending those profiles with a
+ * "could not load" error, the detail page falls back to this summary
+ * record (already present in the search payload) so every profile in
+ * the list is actually viewable.
+ */
+export function findProfileSummary(
+  platform: Platform,
+  identifier: string
+): UserProfileSummary | null {
+  const profiles = extractProfiles(platform);
+  return (
+    profiles.find((p) => getProfileIdentifier(p) === identifier) ?? null
+  );
 }

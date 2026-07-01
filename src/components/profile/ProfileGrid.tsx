@@ -14,7 +14,7 @@ export function ProfileGrid({ profiles, platform }: ProfileGridProps) {
       <EmptyState
         icon={<SearchX className="w-6 h-6" />}
         title="No profiles found"
-        description="This demo searches within a fixed sample of 10 accounts per platform — it doesn't query live Instagram, TikTok, or YouTube data. Try clearing your search or switching platforms to browse what's available."
+        description="This demo ships with a small sample dataset per platform, so search only matches names within that sample — try clearing the search or switching platforms to browse what's available."
       />
     );
   }
