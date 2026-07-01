@@ -37,7 +37,8 @@ export function SearchPage() {
       </div>
 
       <p className="text-xs text-slate-400 mb-4">
-        Showing {filtered.length} of {allProfiles.length} on {platform}
+        Showing {filtered.length} of {allProfiles.length} sample accounts on {platform}.
+        This demo uses a fixed local dataset rather than live platform search.
       </p>
 
       <ProfileGrid profiles={filtered} platform={platform} />

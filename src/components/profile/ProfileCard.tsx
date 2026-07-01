@@ -17,7 +17,9 @@ function ProfileCardImpl({ profile, platform }: ProfileCardProps) {
   const identifier = getProfileIdentifier(profile);
 
   const handleClick = () => {
-    navigate(`/profile/${identifier}?platform=${platform}`);
+    navigate(`/profile/${identifier}?platform=${platform}`, {
+      state: { fromApp: true },
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
