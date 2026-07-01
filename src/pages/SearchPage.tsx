@@ -18,6 +18,8 @@ import {
 } from "@/lib/history";
 import { getPlatformLabel } from "@/lib/platform";
 
+const MotionDiv = motion.div as any;
+
 const STATS = [
   { icon: Users, label: "Sample Creators", value: "30" },
   { icon: TrendingUp, label: "Platforms", value: "3" },
@@ -149,7 +151,7 @@ export function SearchPage() {
             backgroundSize: "40px 40px",
           }}
         />
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+        <MotionDiv initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <p className={`text-sm font-semibold uppercase tracking-widest mb-2 ${isDark ? "text-slate-300" : "text-violet-200"}`}>
             Influencer Discovery
           </p>
@@ -159,9 +161,9 @@ export function SearchPage() {
           <p className={`text-sm max-w-md ${isDark ? "text-slate-300" : "text-violet-200"}`}>
             Browse top creators across Instagram, YouTube, and TikTok. Add them to your shortlist and build your campaign lineup.
           </p>
-        </motion.div>
+        </MotionDiv>
 
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.15 }}
@@ -174,7 +176,7 @@ export function SearchPage() {
               <span className={`text-xs ${isDark ? "text-slate-300" : "text-violet-200"}`}>{label}</span>
             </div>
           ))}
-        </motion.div>
+        </MotionDiv>
       </div>
 
       {/* Controls */}
@@ -230,6 +232,7 @@ export function SearchPage() {
               <label className={`flex flex-col gap-2 rounded-xl border px-4 py-3 shadow-sm ${isDark ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-white"}`}>
                 <ControlsLabel>Sort</ControlsLabel>
                 <select
+                  id="sort-select"
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SearchSort)}
                   className={`bg-transparent text-sm font-medium focus:outline-none ${isDark ? "text-slate-100" : "text-slate-900"}`}
@@ -246,6 +249,7 @@ export function SearchPage() {
               <label className={`flex flex-col gap-2 rounded-xl border px-4 py-3 shadow-sm ${isDark ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-white"}`}>
                 <ControlsLabel>Followers</ControlsLabel>
                 <select
+                  id="followers-select"
                   value={followers}
                   onChange={(e) => setFollowers(e.target.value as FollowerFilter)}
                   className={`bg-transparent text-sm font-medium focus:outline-none ${isDark ? "text-slate-100" : "text-slate-900"}`}
@@ -262,6 +266,7 @@ export function SearchPage() {
               <label className={`flex flex-col gap-2 rounded-xl border px-4 py-3 shadow-sm ${isDark ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-white"}`}>
                 <ControlsLabel>Engagement</ControlsLabel>
                 <select
+                  id="engagement-select"
                   value={engagement}
                   onChange={(e) => setEngagement(e.target.value as EngagementFilter)}
                   className={`bg-transparent text-sm font-medium focus:outline-none ${isDark ? "text-slate-100" : "text-slate-900"}`}

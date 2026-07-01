@@ -4,16 +4,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
-import { useShortlistStore } from "@/store/shortlistStore";
+import { useShortlistStore, type ShortlistState } from "@/store/shortlistStore";
 import { formatFollowers } from "@/lib/format";
 import { getPlatformLabel, getPlatformColor } from "@/lib/platform";
 import { getProfileIdentifier } from "@/lib/profiles";
+import type { ShortlistEntry } from "@/types";
+
+const MotionLi = motion.li as any;
 
 export function ShortlistPage() {
-  const entries = useShortlistStore((s) => s.entries);
-  const remove = useShortlistStore((s) => s.remove);
-  const clear = useShortlistStore((s) => s.clear);
-  const list = Object.values(entries).sort((a, b) => b.addedAt - a.addedAt);
+  const entries = useShortlistStore((s: ShortlistState) => s.entries);
+  const remove = useShortlistStore((s: ShortlistState) => s.remove);
+  const clear = useShortlistStore((s: ShortlistState) => s.clear);
+  const list = Object.values(entries as Record<string, ShortlistEntry>).sort((a, b) => b.addedAt - a.addedAt);
 
   return (
     <Layout>
@@ -21,17 +24,19 @@ export function ShortlistPage() {
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Your Shortlist</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          {/* aria-live region announces count changes to screen readers */}
+          <output aria-live="polite" className="text-sm text-slate-500 mt-1 block">
             {list.length > 0
               ? `${list.length} creator${list.length === 1 ? "" : "s"} saved · persists across refreshes`
               : "No creators saved yet"}
-          </p>
+          </output>
         </div>
         {list.length > 0 && (
           <button
             type="button"
             onClick={clear}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            aria-label="Clear all shortlisted creators"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
           >
             <ListX className="w-3.5 h-3.5" />
             Clear all
@@ -62,7 +67,7 @@ export function ShortlistPage() {
               const identifier = getProfileIdentifier(entry.profile);
               const color = getPlatformColor(entry.platform);
               return (
-                <motion.li
+                <MotionLi
                   key={entry.key}
                   layout
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -99,7 +104,7 @@ export function ShortlistPage() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                </motion.li>
+                </MotionLi>
               );
             })}
           </AnimatePresence>
