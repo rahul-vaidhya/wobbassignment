@@ -55,3 +55,11 @@ export interface ShortlistEntry {
   profile: UserProfileSummary;
   addedAt: number;
 }
+
+export interface CompareEntry {
+  /** Stable unique key: `${platform}:${profile identifier}` */
+  key: string;
+  platform: Platform;
+  profile: UserProfileSummary;
+  addedAt: number;
+}

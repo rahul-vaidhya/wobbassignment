@@ -9,6 +9,8 @@ import { formatFollowers, formatEngagementRate } from "@/lib/format";
 import { getProfileIdentifier } from "@/lib/profiles";
 import { getPlatformLabel, renderPlatformIcon } from "@/lib/platform";
 import { getCreatorGradient } from "@/lib/creatorColor";
+import { useCompareStore } from "@/store/compareStore";
+import { GitCompareArrows } from "lucide-react";
 
 interface ProfileCardProps {
   profile: UserProfileSummary;
@@ -21,6 +23,9 @@ function ProfileCardImpl({ profile, platform, showPlatformBadge = false, index =
   const navigate = useNavigate();
   const identifier = getProfileIdentifier(profile);
   const gradient = getCreatorGradient(profile.username);
+  const key = `${platform}:${identifier}`;
+  const isCompared = useCompareStore((s) => s.isSelected(key));
+  const toggleCompare = useCompareStore((s) => s.toggle);
 
   const handleClick = () => {
     navigate(`/profile/${identifier}?platform=${platform}`, { state: { fromApp: true } });
@@ -91,8 +96,22 @@ function ProfileCardImpl({ profile, platform, showPlatformBadge = false, index =
         </div>
 
         {/* Add to list */}
-        <div className="mt-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-auto grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
           <ShortlistButton platform={platform} profile={profile} variant="compact" className="w-full justify-center" />
+          <button
+            type="button"
+            onClick={() => toggleCompare(platform, profile)}
+            aria-pressed={isCompared}
+            aria-label={isCompared ? `Remove ${profile.fullname} from compare` : `Add ${profile.fullname} to compare`}
+            className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-violet-500 ${
+              isCompared
+                ? "border-violet-600 bg-violet-600 text-white hover:bg-violet-700"
+                : "border-slate-300 bg-white text-slate-700 hover:border-violet-400 hover:text-violet-700"
+            }`}
+          >
+            <GitCompareArrows className="w-4 h-4" aria-hidden="true" />
+            {isCompared ? "Compared" : "Compare"}
+          </button>
         </div>
       </div>
     </motion.div>
