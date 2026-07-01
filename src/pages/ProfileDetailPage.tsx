@@ -119,12 +119,12 @@ export function ProfileDetailPage() {
         className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm"
       >
         {/* Gradient banner */}
-        <div className="h-24 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500" />
+        <div className="h-16 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500" />
 
         <div className="px-6 pb-6">
           {/* Avatar overlapping banner */}
-          <div className="flex items-end justify-between -mt-10 mb-4">
-            <div className="ring-4 ring-white rounded-full">
+          <div className="flex items-end justify-between -mt-8 mb-4 relative z-10">
+            <div className="ring-4 ring-white rounded-full bg-white">
               <ProfileAvatar src={user.picture} name={user.fullname} sizeClassName="w-20 h-20" />
             </div>
             {platform !== "unknown" && (
