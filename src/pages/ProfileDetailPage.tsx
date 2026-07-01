@@ -12,6 +12,9 @@ import { formatEngagementRate, formatNumber } from "@/lib/format";
 import { loadProfileByUsername } from "@/lib/profileLoader";
 import { findProfileSummary } from "@/lib/profiles";
 import { getPlatformLabel, getPlatformColor } from "@/lib/platform";
+import { addRecentViewedProfile } from "@/lib/history";
+
+const MotionDiv = motion.div as any;
 
 type LoadState =
   | { status: "success"; username: string; data: ProfileDetailResponse; isSummaryOnly: false }
@@ -35,16 +38,20 @@ export function ProfileDetailPage() {
   const cameFromApp = Boolean((location.state as { fromApp?: boolean } | null)?.fromApp);
   const platform = (searchParams.get("platform") as Platform | null) ?? "unknown";
   const [state, setState] = useState<LoadState | null>(null);
+  const user = state?.status === "success" ? state.data.data.user_profile : null;
 
   useEffect(() => {
     if (!username) return;
+
     let cancelled = false;
+
     loadProfileByUsername(username).then((data) => {
       if (cancelled) return;
       if (data) {
         setState({ status: "success", username, data, isSummaryOnly: false });
         return;
       }
+
       const summary = platform !== "unknown" ? findProfileSummary(platform, username) : null;
       if (summary) {
         setState({ status: "success", username, data: wrapSummaryAsDetail(summary), isSummaryOnly: true });
@@ -52,8 +59,23 @@ export function ProfileDetailPage() {
         setState({ status: "not-found", username });
       }
     });
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, [username, platform]);
+
+  useEffect(() => {
+    if (!user || platform === "unknown") {
+      return;
+    }
+
+    addRecentViewedProfile({
+      platform,
+      username: user.username,
+      fullname: user.fullname,
+    });
+  }, [platform, user?.fullname, user?.username]);
 
   const isLoading = !state || state.username !== username;
 
@@ -66,13 +88,19 @@ export function ProfileDetailPage() {
     return (
       <Layout>
         <p className="text-slate-600">Invalid profile.</p>
-        <Link to="/" className="text-violet-600 underline text-sm">Back to search</Link>
+        <Link to="/" className="text-violet-600 underline text-sm">
+          Back to search
+        </Link>
       </Layout>
     );
   }
 
   if (isLoading || !state) {
-    return <Layout><ProfileDetailSkeleton /></Layout>;
+    return (
+      <Layout>
+        <ProfileDetailSkeleton />
+      </Layout>
+    );
   }
 
   if (state.status === "not-found") {
@@ -86,16 +114,17 @@ export function ProfileDetailPage() {
     );
   }
 
-  const user: FullUserProfile = state.data.data.user_profile;
+  const detailedUser = user as FullUserProfile;
   const stats: { label: string; value: string }[] = [
-    { label: "Followers", value: formatNumber(user.followers) },
-    { label: "Engagement Rate", value: formatEngagementRate(user.engagement_rate) },
+    { label: "Followers", value: formatNumber(detailedUser.followers) },
+    { label: "Engagement Rate", value: formatEngagementRate(detailedUser.engagement_rate) },
   ];
-  if (user.posts_count !== undefined) stats.push({ label: "Posts", value: formatNumber(user.posts_count) });
-  if (user.avg_likes !== undefined) stats.push({ label: "Avg Likes", value: formatNumber(user.avg_likes) });
-  if (user.avg_comments !== undefined) stats.push({ label: "Avg Comments", value: formatNumber(user.avg_comments) });
-  if (user.avg_views !== undefined && user.avg_views > 0) stats.push({ label: "Avg Views", value: formatNumber(user.avg_views) });
-  if (user.engagements !== undefined) stats.push({ label: "Engagements", value: formatNumber(user.engagements) });
+
+  if (detailedUser.posts_count !== undefined) stats.push({ label: "Posts", value: formatNumber(detailedUser.posts_count) });
+  if (detailedUser.avg_likes !== undefined) stats.push({ label: "Avg Likes", value: formatNumber(detailedUser.avg_likes) });
+  if (detailedUser.avg_comments !== undefined) stats.push({ label: "Avg Comments", value: formatNumber(detailedUser.avg_comments) });
+  if (detailedUser.avg_views !== undefined && detailedUser.avg_views > 0) stats.push({ label: "Avg Views", value: formatNumber(detailedUser.avg_views) });
+  if (detailedUser.engagements !== undefined) stats.push({ label: "Engagements", value: formatNumber(detailedUser.engagements) });
 
   const platformColor = platform !== "unknown" ? getPlatformColor(platform) : "";
 
@@ -112,20 +141,18 @@ export function ProfileDetailPage() {
         </div>
       )}
 
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm"
       >
-        {/* Gradient banner */}
         <div className="h-16 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500" />
 
         <div className="px-6 pb-6">
-          {/* Avatar overlapping banner */}
           <div className="flex items-end justify-between -mt-8 mb-4 relative z-10">
             <div className="ring-4 ring-white rounded-full bg-white">
-              <ProfileAvatar src={user.picture} name={user.fullname} sizeClassName="w-20 h-20" />
+              <ProfileAvatar src={detailedUser.picture} name={detailedUser.fullname} sizeClassName="w-20 h-20" />
             </div>
             {platform !== "unknown" && (
               <span className={`text-xs font-bold px-3 py-1 rounded-full ${platformColor}`}>
@@ -134,22 +161,20 @@ export function ProfileDetailPage() {
             )}
           </div>
 
-          {/* Name + handle */}
           <div className="mb-4">
             <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-1.5 tracking-tight">
-              {user.fullname}
-              <VerifiedBadge verified={user.is_verified} className="w-5 h-5" />
+              {detailedUser.fullname}
+              <VerifiedBadge verified={detailedUser.is_verified} className="w-5 h-5" />
             </h2>
-            <p className="text-slate-500 text-sm">@{user.username}</p>
-            {user.description && (
-              <p className="mt-2 text-sm text-slate-700 leading-relaxed">{user.description}</p>
+            <p className="text-slate-500 text-sm">@{detailedUser.username}</p>
+            {detailedUser.description && (
+              <p className="mt-2 text-sm text-slate-700 leading-relaxed">{detailedUser.description}</p>
             )}
           </div>
 
-          {/* Stats grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
             {stats.map((stat, i) => (
-              <motion.div
+              <MotionDiv
                 key={stat.label}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -158,18 +183,17 @@ export function ProfileDetailPage() {
               >
                 <div className="text-xs text-slate-400 mb-0.5">{stat.label}</div>
                 <div className="font-bold text-slate-900">{stat.value}</div>
-              </motion.div>
+              </MotionDiv>
             ))}
           </div>
 
-          {/* Actions */}
           <div className="flex flex-wrap items-center gap-3">
             {platform !== "unknown" && (
-              <ShortlistButton platform={platform} profile={user} variant="full" />
+              <ShortlistButton platform={platform} profile={detailedUser} variant="full" />
             )}
-            {user.url && (
+            {detailedUser.url && (
               <a
-                href={user.url}
+                href={detailedUser.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-slate-700 border border-slate-300 rounded-xl hover:border-violet-400 hover:text-violet-700 transition-colors"
@@ -179,7 +203,7 @@ export function ProfileDetailPage() {
             )}
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
     </Layout>
   );
 }

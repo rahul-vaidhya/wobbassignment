@@ -4,6 +4,8 @@ import { useShortlistCount } from "@/store/shortlistStore";
 import { useCompareCount } from "@/store/compareStore";
 import { motion, AnimatePresence } from "framer-motion";
 
+const MotionSpan = motion.span as any;
+
 export function Header() {
   const count = useShortlistCount();
   const compareCount = useCompareCount();
@@ -35,7 +37,7 @@ export function Header() {
             <span className="hidden sm:inline">Compare</span>
             <AnimatePresence>
               {compareCount > 0 && (
-                <motion.span
+                <MotionSpan
                   key="compare-badge"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -46,7 +48,7 @@ export function Header() {
                   }`}
                 >
                   {compareCount}
-                </motion.span>
+                </MotionSpan>
               )}
             </AnimatePresence>
           </Link>
@@ -64,7 +66,7 @@ export function Header() {
             <span className="hidden sm:inline">Shortlist</span>
             <AnimatePresence>
               {count > 0 && (
-                <motion.span
+                <MotionSpan
                   key="badge"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -75,7 +77,7 @@ export function Header() {
                   }`}
                 >
                   {count}
-                </motion.span>
+                </MotionSpan>
               )}
             </AnimatePresence>
           </Link>
