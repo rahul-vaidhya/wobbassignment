@@ -1,4 +1,5 @@
 export type Platform = "instagram" | "youtube" | "tiktok";
+export type TabOption = Platform | "all";
 
 export interface UserProfileSummary {
   user_id: string;

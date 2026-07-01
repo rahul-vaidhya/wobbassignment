@@ -3,6 +3,8 @@ import youtubeData from "@/assets/data/search/youtube.json";
 import tiktokData from "@/assets/data/search/tiktok.json";
 import type { Platform, SearchData, UserProfileSummary } from "@/types";
 
+const PLATFORMS: Platform[] = ["instagram", "youtube", "tiktok"];
+
 const platformData: Record<Platform, SearchData> = {
   instagram: instagramData as SearchData,
   youtube: youtubeData as SearchData,
@@ -64,5 +66,12 @@ export function findProfileSummary(
   const profiles = extractProfiles(platform);
   return (
     profiles.find((p) => getProfileIdentifier(p) === identifier) ?? null
+  );
+}
+
+/** Returns all profiles across every platform, each tagged with its platform. */
+export function extractAllProfiles(): { profile: UserProfileSummary; platform: Platform }[] {
+  return PLATFORMS.flatMap((platform) =>
+    extractProfiles(platform).map((profile) => ({ profile, platform }))
   );
 }

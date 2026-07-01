@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Users, TrendingUp, Zap } from "lucide-react";
-import type { Platform } from "@/types";
+import type { Platform, TabOption, UserProfileSummary } from "@/types";
 import { Layout } from "@/components/layout/Layout";
 import { PlatformTabs } from "@/components/search/PlatformTabs";
 import { SearchInput } from "@/components/search/SearchInput";
 import { ProfileGrid } from "@/components/profile/ProfileGrid";
-import { extractProfiles, filterProfiles } from "@/lib/profiles";
+import { extractProfiles, extractAllProfiles } from "@/lib/profiles";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 const STATS = [
@@ -15,19 +15,36 @@ const STATS = [
   { icon: Zap, label: "Instant Filter", value: "Live" },
 ];
 
+function filterPairs(
+  pairs: { profile: UserProfileSummary; platform: Platform }[],
+  query: string
+) {
+  const q = query.trim().toLowerCase();
+  if (!q) return pairs;
+  return pairs.filter(
+    ({ profile }) =>
+      profile.username.toLowerCase().includes(q) ||
+      profile.fullname.toLowerCase().includes(q)
+  );
+}
+
 export function SearchPage() {
-  const [platform, setPlatform] = useState<Platform>("instagram");
+  const [tab, setTab] = useState<TabOption>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebouncedValue(searchQuery, 200);
 
-  const allProfiles = useMemo(() => extractProfiles(platform), [platform]);
-  const filtered = useMemo(
-    () => filterProfiles(allProfiles, debouncedQuery),
-    [allProfiles, debouncedQuery]
-  );
+  const allPairs = useMemo(() => extractAllProfiles(), []);
 
-  const handlePlatformChange = (next: Platform) => {
-    setPlatform(next);
+  const pairs = useMemo(() => {
+    const base =
+      tab === "all"
+        ? allPairs
+        : extractProfiles(tab as Platform).map((profile) => ({ profile, platform: tab as Platform }));
+    return filterPairs(base, debouncedQuery);
+  }, [tab, allPairs, debouncedQuery]);
+
+  const handleTabChange = (next: TabOption) => {
+    setTab(next);
     setSearchQuery("");
   };
 
@@ -35,15 +52,18 @@ export function SearchPage() {
     <Layout>
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 px-6 py-10 sm:px-10 sm:py-12 mb-8 shadow-xl shadow-violet-100">
-        <div className="absolute inset-0 opacity-10"
-          style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }}
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+          }}
         />
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <p className="text-violet-200 text-sm font-semibold uppercase tracking-widest mb-2">Influencer Discovery</p>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+          <p className="text-violet-200 text-sm font-semibold uppercase tracking-widest mb-2">
+            Influencer Discovery
+          </p>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-3 tracking-tight">
             Find the right<br />creator for your brand
           </h1>
@@ -52,7 +72,6 @@ export function SearchPage() {
           </p>
         </motion.div>
 
-        {/* Stat pills */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -71,15 +90,15 @@ export function SearchPage() {
 
       {/* Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <PlatformTabs selected={platform} onChange={handlePlatformChange} />
+        <PlatformTabs selected={tab} onChange={handleTabChange} />
         <SearchInput value={searchQuery} onChange={setSearchQuery} />
       </div>
 
       <p className="text-xs text-slate-400 mb-5">
-        Showing <span className="font-medium text-slate-600">{filtered.length}</span> of {allProfiles.length} creators on {platform} — search filters within this sample dataset.
+        Showing <span className="font-medium text-slate-600">{pairs.length}</span> creator{pairs.length !== 1 ? "s" : ""}{tab !== "all" ? ` on ${tab}` : " across all platforms"} — search filters within this sample dataset.
       </p>
 
-      <ProfileGrid profiles={filtered} platform={platform} />
+      <ProfileGrid profiles={pairs} showPlatformBadge={tab === "all"} />
     </Layout>
   );
 }

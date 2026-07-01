@@ -29,6 +29,16 @@ export function getPlatformIcon(platform: Platform) {
   return ICONS[platform];
 }
 
+/**
+ * Renders a platform icon as a JSX element (rather than returning the
+ * component reference itself, which the react-hooks/static-components
+ * rule flags as "created during render" even for stable lookups).
+ */
+export function renderPlatformIcon(platform: Platform, className?: string) {
+  const Icon = ICONS[platform];
+  return <Icon className={className} aria-hidden="true" />;
+}
+
 export function getPlatformColor(platform: Platform): string {
   return COLORS[platform];
 }
