@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import type { Platform, UserProfileSummary } from "@/types";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
@@ -9,8 +9,10 @@ import { formatFollowers, formatEngagementRate } from "@/lib/format";
 import { getProfileIdentifier } from "@/lib/profiles";
 import { getPlatformLabel, renderPlatformIcon } from "@/lib/platform";
 import { getCreatorGradient } from "@/lib/creatorColor";
-import { useCompareStore } from "@/store/compareStore";
+import { useCompareStore, type CompareState } from "@/store/compareStore";
 import { GitCompareArrows } from "lucide-react";
+
+const MotionDiv = motion.div as any;
 
 interface ProfileCardProps {
   profile: UserProfileSummary;
@@ -24,8 +26,8 @@ function ProfileCardImpl({ profile, platform, showPlatformBadge = false, index =
   const identifier = getProfileIdentifier(profile);
   const gradient = getCreatorGradient(profile.username);
   const key = `${platform}:${identifier}`;
-  const isCompared = useCompareStore((s) => s.isSelected(key));
-  const toggleCompare = useCompareStore((s) => s.toggle);
+  const isCompared = useCompareStore((s: CompareState) => s.isSelected(key));
+  const toggleCompare = useCompareStore((s: CompareState) => s.toggle);
 
   const handleClick = () => {
     navigate(`/profile/${identifier}?platform=${platform}`, { state: { fromApp: true } });
@@ -39,11 +41,14 @@ function ProfileCardImpl({ profile, platform, showPlatformBadge = false, index =
   };
 
   return (
-    <motion.div
+    <MotionDiv
+      layout
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
       transition={{ duration: 0.25, delay: index * 0.04 }}
       whileHover={{ y: -3, boxShadow: "0 12px 32px -8px rgba(0,0,0,0.12)" }}
+      whileTap={{ scale: 0.98 }}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       role="button"
@@ -77,22 +82,34 @@ function ProfileCardImpl({ profile, platform, showPlatformBadge = false, index =
         </div>
         <div className="text-xs text-slate-500 truncate mb-3">{profile.fullname}</div>
 
-        {/* Stats */}
+        {/* Stats — staggered entrance */}
         <div className="flex gap-2 mb-4">
-          <div className="flex-1 bg-slate-50 rounded-xl px-2.5 py-2">
+          <MotionDiv
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, delay: index * 0.04 + 0.1 }}
+            className="flex-1 bg-slate-50 rounded-xl px-2.5 py-2"
+          >
             <div className="text-xs text-slate-400">Followers</div>
             <div className="text-sm font-bold text-slate-900">
               {formatFollowers(profile.followers).replace(" followers", "")}
             </div>
-          </div>
-          {profile.engagement_rate !== undefined && (
-            <div className="flex-1 bg-slate-50 rounded-xl px-2.5 py-2">
-              <div className="text-xs text-slate-400">Engagement</div>
-              <div className="text-sm font-bold text-slate-900">
-                {formatEngagementRate(profile.engagement_rate)}
-              </div>
-            </div>
-          )}
+          </MotionDiv>
+          <AnimatePresence>
+            {profile.engagement_rate !== undefined && (
+              <MotionDiv
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: index * 0.04 + 0.15 }}
+                className="flex-1 bg-slate-50 rounded-xl px-2.5 py-2"
+              >
+                <div className="text-xs text-slate-400">Engagement</div>
+                <div className="text-sm font-bold text-slate-900">
+                  {formatEngagementRate(profile.engagement_rate)}
+                </div>
+              </MotionDiv>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Add to list */}
@@ -114,7 +131,7 @@ function ProfileCardImpl({ profile, platform, showPlatformBadge = false, index =
           </button>
         </div>
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 }
 

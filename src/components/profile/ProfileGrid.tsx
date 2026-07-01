@@ -2,6 +2,10 @@ import { SearchX } from "lucide-react";
 import type { Platform, UserProfileSummary } from "@/types";
 import { ProfileCard } from "@/components/profile/ProfileCard";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+
+const MotionDiv = motion.div as any;
 
 interface ProfileGridProps {
   profiles: { profile: UserProfileSummary; platform: Platform }[];
@@ -20,16 +24,21 @@ export function ProfileGrid({ profiles, showPlatformBadge = false }: ProfileGrid
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {profiles.map(({ profile, platform }, index) => (
-        <ProfileCard
-          key={`${platform}-${profile.user_id}`}
-          profile={profile}
-          platform={platform}
-          showPlatformBadge={showPlatformBadge}
-          index={index}
-        />
-      ))}
-    </div>
+    <MotionDiv
+      layout
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+    >
+      <AnimatePresence mode="popLayout">
+        {profiles.map(({ profile, platform }, index) => (
+          <ProfileCard
+            key={`${platform}-${profile.user_id}`}
+            profile={profile}
+            platform={platform}
+            showPlatformBadge={showPlatformBadge}
+            index={index}
+          />
+        ))}
+      </AnimatePresence>
+    </MotionDiv>
   );
 }
