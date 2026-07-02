@@ -1,338 +1,395 @@
-# Wobb Influencer Search — Frontend Assignment
+# Wobb Influencer Search
 
-> A production-grade influencer discovery platform built on a buggy starter, rebuilt from the ground up.
+> Influencer discovery and shortlisting app — built on a buggy starter, rebuilt to production quality.
 
-![TypeScript](https://img.shields.io/badge/TypeScript-~6.0-3178C6?logo=typescript&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
-![Zustand](https://img.shields.io/badge/Zustand-5-orange)
-![License](https://img.shields.io/badge/License-MIT-green)
+[![TypeScript](https://img.shields.io/badge/TypeScript-~6.0-3178C6?logo=typescript&logoColor=white&style=flat-square)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white&style=flat-square)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white&style=flat-square)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white&style=flat-square)](https://tailwindcss.com/)
+[![Zustand](https://img.shields.io/badge/Zustand-5-FF6B35?style=flat-square)](https://zustand-demo.pmnd.rs/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
+
+**Submitted as the Wobb Frontend Take-Home Assignment (July 2026).**
+
+The base repository was intentionally broken. This submission fixes every bug, redesigns the interface from scratch, migrates state to Zustand, and adds shortlisting, recently-viewed tracking, and a sponsorship cost estimator on top.
 
 ---
 
 ## Table of Contents
 
-- [Overview](#overview)
+- [Live Demo](#live-demo)
+- [Screenshots](#screenshots)
 - [Features](#features)
+- [Recent Updates](#recent-updates)
 - [Tech Stack](#tech-stack)
-- [Folder Structure](#folder-structure)
+- [Architecture & Folder Structure](#architecture--folder-structure)
 - [Installation](#installation)
-- [Usage](#usage)
-- [Architecture](#architecture)
-- [What Changed](#what-changed)
-- [Libraries Added](#libraries-added)
-- [Assumptions](#assumptions)
-- [Trade-offs](#trade-offs)
+- [Running Locally](#running-locally)
+- [Build for Production](#build-for-production)
+- [Project Structure](#project-structure)
+- [Key Components](#key-components)
+- [Application Flow](#application-flow)
 - [Scripts](#scripts)
 - [Future Improvements](#future-improvements)
+- [License](#license)
 - [Author](#author)
 
 ---
 
-## Overview
+## Live Demo
 
-This project is a submitted solution for the **Wobb Frontend Take-Home Assignment**. The base repository provided a functional-but-broken influencer search application. The goal was to fix all bugs, redesign the UI, migrate state management to Zustand, implement a persistent shortlist feature, and improve code quality and performance throughout.
+🔗 **[wobbassignmentrahul.vercel.app](https://wobbassignmentrahul.vercel.app/)**
 
-The app lets users:
-- Discover influencers across Instagram, YouTube, and TikTok
-- View detailed profile analytics
-- Save profiles to a persistent shortlist for later review
+Or run locally: `npm install && npm run dev` → [http://localhost:5173](http://localhost:5173)
+
+---
+
+## Screenshots
+
+> Add screenshots to a `docs/` folder and update these paths.
+
+| Search Dashboard | Profile Detail | Shortlist |
+| --- | --- | --- |
+| `docs/screenshots/search.png` | `docs/screenshots/profile.png` | `docs/screenshots/shortlist.png` |
 
 ---
 
 ## Features
 
-- **Multi-platform search** — filter influencers by Instagram, YouTube, or TikTok with a tab-style switcher
-- **Debounced real-time search** — case-insensitive search by username or full name, debounced at 200ms
-- **Profile detail view** — per-profile analytics including follower count, engagement rate, and engagement volume
-- **Shortlist / Add to List** — add any profile from either the card or detail page; togglable, duplicate-proof
-- **Persistent shortlist** — backed by `localStorage` via Zustand `persist` middleware; survives page refresh
-- **Dedicated shortlist page** — view all saved profiles at `/shortlist` with remove action and empty state
-- **Skeleton loading states** — smooth loading UX instead of blank flashes
-- **Responsive grid layout** — 1 / 2 / 3 columns based on viewport
-- **Accessible interactions** — keyboard-navigable cards, visible focus rings, ARIA attributes, descriptive alt text
-- **Image fallback handling** — broken image URLs degrade gracefully to a placeholder UI
-- **Sticky header with live count badge** — shortlist count always visible without navigating away
+### Search & Discovery
+
+- **Platform tabs** — switch between Instagram, YouTube, and TikTok with a tab-style switcher; only relevant profiles load
+- **Debounced real-time search** — case-insensitive filtering by username or full name, debounced at 200 ms to avoid redundant renders
+- **Responsive card grid** — 1 / 2 / 3 columns based on viewport width
+- **Skeleton loading states** — content placeholders during async data loads; no blank-screen flash
+
+### Profile Detail
+
+- **Full analytics** — follower count, engagement rate, and total engagements, all formatted correctly
+- **Estimated Sponsorship Cost** — per-post cost range calculated from follower count and engagement rate using industry-standard CPE benchmarks; displayed as a Min / Max range in INR and USD
+- **Image fallback** — broken avatar or banner URLs degrade gracefully to a styled placeholder; no broken-image icons
+
+### Shortlisting
+
+- **Add to List** toggle on every card and on the profile detail page
+- **Duplicate prevention** — store is keyed by `platform:username` so re-adding is a no-op
+- **Persistent across sessions** — backed by `localStorage` via Zustand `persist` middleware; survives hard refresh
+- **Dedicated `/shortlist` page** — view all saved profiles with platform badge, follower count, and a remove action; shows an empty state with a link back to search
+
+### Recently Viewed
+
+- **Automatic tracking** — every profile page visit is recorded in a Zustand store (capped at 10 entries, most-recent first)
+- **Persistent across sessions** — backed by `localStorage`; list survives page refresh
+- **Displayed on the search page** — a "Recently Viewed" row appears above the grid when history is non-empty; click any entry to jump back
+
+### UI / UX
+
+- **Sticky header** with a live shortlist count badge
+- **Framer Motion** page transitions and card hover micro-interactions
+- **Keyboard-accessible cards** — `role="button"`, Enter/Space activation, visible focus rings
+- **ARIA attributes** and descriptive `alt` text throughout
+- **Error boundary** — unexpected render errors display a friendly fallback instead of a white screen
+
+---
+
+## Recent Updates
+
+> What was added on top of the initial assignment deliverables.
+
+| Feature | Details |
+| --- | --- |
+| **Estimated Sponsorship Cost** | Profile detail page now shows a cost-per-post range (Min / Max) based on follower count × engagement rate, displayed in both INR and USD |
+| **Recently Viewed Profiles** | Visiting a profile page records it automatically; a scrollable "Recently Viewed" strip appears on the search dashboard and persists across refreshes |
+| **Enhanced Profile Detail** | Cleaner layout, stat cards with icons, sponsorship estimator panel, and a back button that preserves search/filter state |
+| **Framer Motion animations** | Entrance animations on cards (`AnimatePresence`), stagger on grid mount, and page-level transitions via a shared `Layout` wrapper |
+| **Loading skeletons** | `Skeleton` component shown at the card level and at the profile detail level while JSON loads |
+| **Error & fallback states** | `EmptyState` component for no-results and empty-shortlist views; image `onError` fallback; route-level error boundary |
 
 ---
 
 ## Tech Stack
 
-| Category        | Technology                         |
-| --------------- | ---------------------------------- |
-| Framework       | React 19                           |
-| Language        | TypeScript ~6.0 (strict mode)      |
-| Build Tool      | Vite 7                             |
-| Styling         | Tailwind CSS 4                     |
-| State           | Zustand 5 + `persist` middleware   |
-| Routing         | React Router DOM 7                 |
-| Icons           | Lucide React                       |
-| Animations      | Framer Motion                      |
-| Utilities       | clsx                               |
-| Linting         | ESLint 10 + typescript-eslint      |
-| Testing         | Vitest                             |
+| Category | Technology | Version |
+| --- | --- | --- |
+| Framework | React | ^19.2.6 |
+| Language | TypeScript (strict) | ~6.0.2 |
+| Build tool | Vite | ^7.1.0 |
+| Styling | Tailwind CSS (Vite plugin) | ^4.3.1 |
+| State management | Zustand + `persist` middleware | ^5.0.14 |
+| Routing | React Router DOM | ^7.18.0 |
+| Animations | Framer Motion | ^12.42.2 |
+| Icons | Lucide React | ^1.22.0 |
+| Class utilities | clsx | ^2.1.1 |
+| Linting | ESLint 10 + typescript-eslint | ^10.3.0 / ^8.59.2 |
+| Testing | Vitest (via custom runner) | ^3.2.4 |
+
+> **Tailwind v4 note:** v4 drops the PostCSS plugin in favour of a dedicated Vite plugin (`@tailwindcss/vite`). No `tailwind.config.js` or `postcss.config.js` is needed.
 
 ---
 
-## Folder Structure
+## Architecture & Folder Structure
 
-```text
-wobbassignment/
-├── public/
-├── src/
-│   ├── assets/
-│   │   └── data/
-│   │       ├── search/          # Platform search index JSON files
-│   │       └── profiles/        # Per-profile detail JSON files
-│   ├── components/
-│   │   ├── layout/              # Header, Layout
-│   │   ├── profile/             # ProfileAvatar, ProfileCard, ProfileGrid
-│   │   ├── search/              # PlatformTabs, SearchInput
-│   │   ├── shortlist/           # ShortlistButton
-│   │   └── ui/                  # EmptyState, Skeleton, VerifiedBadge
-│   ├── hooks/
-│   │   └── useDebouncedValue.ts
-│   ├── lib/
-│   │   ├── format.ts            # Shared number/rate formatters
-│   │   ├── platform.ts          # Platform metadata helpers
-│   │   ├── profiles.ts          # Profile list normalization
-│   │   └── profileLoader.ts     # import.meta.glob lazy loader
-│   ├── pages/
-│   │   ├── SearchPage.tsx
-│   │   ├── ProfileDetailPage.tsx
-│   │   └── ShortlistPage.tsx
-│   ├── store/
-│   │   └── shortlistStore.ts    # Zustand store with persist middleware
-│   ├── types/
-│   │   └── index.ts             # Shared TypeScript interfaces
-│   ├── App.tsx
-│   └── main.tsx
-├── index.html
-├── package.json
-├── tsconfig.app.json
-├── tsconfig.json
-├── vite.config.ts
-└── eslint.config.js
+The app is page-driven with a thin data-access layer in `src/lib/` and all persistent state in Zustand stores under `src/store/`.
+
 ```
+User visits route
+  → React Router renders Page
+    → Page reads data via src/lib/ helpers (import.meta.glob, normalize)
+      → Page reads/writes Zustand store (shortlist, recentlyViewed)
+        → Components render; Zustand persist syncs to localStorage
+```
+
+**Design decisions worth noting:**
+
+- **Normalization at the data layer.** YouTube profiles in the sample data only have `handle`, not `username`. `src/lib/profiles.ts` resolves this once; no component ever checks for `undefined`.
+- **O(1) shortlist ops.** The shortlist store uses `Record<string, entry>` keyed by `platform:username`, so `isShortlisted`, `add`, and `remove` are all constant-time.
+- **`React.memo` on `ProfileCard`.** The card grid re-renders on every debounced keystroke. Memoizing the card component constrains re-renders to cards whose props actually changed.
+- **No data-fetching library.** Data is static local JSON. TanStack Query would add complexity with no benefit here.
 
 ---
 
 ## Installation
 
-### Prerequisites
-
-- Node.js 18+
-- npm 9+
-
-### Setup
+**Prerequisites:** Node.js 18+ and npm 9+
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/rahul-vaidhya/wobbassignment.git
 cd wobbassignment
-
-# 2. Install dependencies
 npm install
+```
 
-# 3. Start the development server
+No `.env` file is required — the app uses only local static JSON data.
+
+---
+
+## Running Locally
+
+```bash
 npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-### Production Build
+---
+
+## Build for Production
 
 ```bash
 npm run build
 ```
 
-The build output goes to `dist/`. Verify with:
+This runs `tsc -b` (type-check) followed by `vite build`. Output goes to `dist/`.
+
+To preview the production build locally:
 
 ```bash
 npm run preview
 ```
 
----
+### Deploying to Vercel
 
-## Usage
+```bash
+# Install the Vercel CLI
+npm i -g vercel
 
-| Route              | Description                                 |
-| ------------------ | ------------------------------------------- |
-| `/`                | Main search dashboard                       |
-| `/profile/:username` | Individual influencer profile detail page |
-| `/shortlist`       | Saved shortlist of selected profiles        |
-
-**Search** — type in the search bar to filter by username or full name across the active platform tab.
-
-**Add to List** — click the bookmark icon on any card or the "Add to List" button on the profile detail page. Click again to remove. The shortlist persists across page refreshes.
-
-**Shortlist page** — navigate via the header badge or directly to `/shortlist` to review and manage saved profiles.
-
----
-
-## Architecture
-
-The app follows a flat page-driven architecture with co-located shared logic in `src/lib/`.
-
-**Data flow:**
-
-```
-JSON files (import.meta.glob)
-  → profileLoader.ts (lazy async loader)
-    → profiles.ts (normalizes inconsistent fields: handle vs username)
-      → SearchPage / ProfileDetailPage (via useMemo)
-        → Zustand shortlistStore (add/remove/persist)
-          → ShortlistPage
+# Deploy (follow the prompts; framework will be auto-detected as Vite)
+vercel
 ```
 
-**Key decisions:**
-
-- **Zustand over Context** for shortlist state — simpler API, no Provider boilerplate, and `persist` middleware handles `localStorage` serialization automatically.
-- **Normalization at the data layer** (`profiles.ts`) — YouTube profiles with `handle` instead of `username` are resolved once here so no component ever deals with `undefined`.
-- **`React.memo` on `ProfileCard`** — the grid re-renders on every keystroke (debounced, but still); memoizing the card prevents re-rendering cards whose props haven't changed.
-- **O(1) shortlist lookups** — shortlist is stored as `Record<string, ShortlistEntry>` keyed by `platform:username`, so duplicate checks and toggle operations are constant time.
-- **No external data-fetching library** — data is static local JSON; TanStack Query would add complexity without benefit here.
+Or connect the repo in the Vercel dashboard — no additional configuration is needed. Vercel auto-detects Vite and sets `dist` as the output directory.
 
 ---
 
-## What Changed
+## Project Structure
+
+```text
+wobbassignment/
+├── public/                        # Static assets (favicon, etc.)
+├── scripts/
+│   └── run-tests.cjs              # Custom Vitest runner script
+├── src/
+│   ├── assets/
+│   │   └── data/
+│   │       ├── search/            # Platform search index JSON files
+│   │       └── profiles/          # Per-profile detail JSON files
+│   ├── components/
+│   │   ├── layout/                # Header, Layout (page wrapper)
+│   │   ├── profile/               # ProfileAvatar, ProfileCard, ProfileGrid
+│   │   ├── search/                # PlatformTabs, SearchInput
+│   │   ├── shortlist/             # ShortlistButton
+│   │   └── ui/                    # EmptyState, Skeleton, VerifiedBadge
+│   ├── hooks/
+│   │   └── useDebouncedValue.ts   # Generic debounce hook
+│   ├── lib/
+│   │   ├── format.ts              # Follower count, engagement rate, cost formatters
+│   │   ├── platform.ts            # Platform metadata (label, icon, color)
+│   │   ├── profiles.ts            # Profile list normalization (handle → username)
+│   │   └── profileLoader.ts       # import.meta.glob lazy loader
+│   ├── pages/
+│   │   ├── SearchPage.tsx         # Dashboard: search, filter, recently viewed
+│   │   ├── ProfileDetailPage.tsx  # Profile stats + sponsorship cost estimator
+│   │   └── ShortlistPage.tsx      # Saved profiles list
+│   ├── store/
+│   │   ├── shortlistStore.ts      # Zustand: add/remove/toggle + localStorage persist
+│   │   └── recentlyViewedStore.ts # Zustand: last 10 visited profiles + localStorage persist
+│   ├── types/
+│   │   └── index.ts               # Shared TypeScript interfaces
+│   ├── App.tsx                    # Route definitions
+│   └── main.tsx                   # React entry point
+├── index.html
+├── package.json
+├── tsconfig.json
+├── tsconfig.app.json
+├── tsconfig.node.json
+├── vite.config.ts                 # Vite + Tailwind plugin + @ path alias
+└── eslint.config.js
+```
+
+> The `@` alias in `vite.config.ts` maps to `src/`, so imports use `@/components/...` throughout.
+
+---
+
+## Key Components
 
 <details>
-<summary><strong>1. Bugs Fixed (8 issues)</strong></summary>
+<summary><strong>ProfileCard</strong> — <code>src/components/profile/ProfileCard.tsx</code></summary>
 
-- **Broken `npm install`** — `react-beautiful-dnd` was listed as a dependency but never used and has a peer-dep conflict with React 19. Removed.
-- **Case-sensitive search** — username matching was case-sensitive while full name matching wasn't. Both now use consistent case-insensitive comparison.
-- **Engagement Rate off by 100x** — detail page computed `rate * 10000` inline instead of the correct `rate * 100`. Fixed.
-- **Wrong "Engagements" stat** — the engagement-rate formatter was being called on the engagement count. Fixed to use the correct count formatter.
-- **`@undefined` usernames** — some YouTube records only have `handle`, not `username`. Cards and routing now fall back to `handle`, then `user_id`.
-- **Missing `alt` attributes** — all `<img>` tags now have descriptive alt text; broken image URLs show a fallback placeholder UI.
-- **Stale data flash on fast navigation** — the profile detail page never reset loading state when the route param changed. Fixed with a cancellation guard against out-of-order async responses.
-- **Missing `rel="noopener noreferrer"`** on `target="_blank"` external links.
+Wrapped in `React.memo`. Renders avatar, name, platform badge, follower count, engagement rate, and a `ShortlistButton`. Keyboard-accessible (`role="button"`, Enter/Space handler).
 
 </details>
 
 <details>
-<summary><strong>2. UI/UX Redesign</strong></summary>
+<summary><strong>ProfileDetailPage</strong> — <code>src/pages/ProfileDetailPage.tsx</code></summary>
 
-- Sticky header with live shortlist count badge
-- Tab-style platform switcher with platform icons
-- Debounced search input with clear (×) button
-- Responsive card grid (1 / 2 / 3 columns)
-- Skeleton loading states
-- Empty-state component (no results, empty shortlist)
-- Keyboard-accessible cards (`role="button"`, Enter/Space, visible focus rings)
-- Framer Motion transitions between page states
+Loads profile JSON via `profileLoader.ts` on route change, with a cancellation guard for out-of-order responses. Displays full stats plus the **Estimated Sponsorship Cost** panel. Has a back-button that restores the previous search/filter state.
 
 </details>
 
 <details>
-<summary><strong>3. React Context → Zustand</strong></summary>
+<summary><strong>shortlistStore</strong> — <code>src/store/shortlistStore.ts</code></summary>
 
-Replaced all Context-based state with a single `shortlistStore.ts` (Zustand). The store exposes `add`, `remove`, `toggle`, `isShortlisted`, and uses `persist` middleware for automatic `localStorage` sync — no manual serialization needed.
-
-</details>
-
-<details>
-<summary><strong>4. Shortlist Feature</strong></summary>
-
-- Add / remove from any card or from the profile detail page
-- Duplicate prevention via keyed `Record` storage
-- `/shortlist` page with per-profile remove and an empty state
-- Persistent after page refresh via `localStorage`
+Zustand store with `persist` middleware. State is a `Record<string, ShortlistEntry>` keyed by `platform:username`. Exposes `add`, `remove`, `toggle`, and `isShortlisted`.
 
 </details>
 
 <details>
-<summary><strong>5. Code Quality</strong></summary>
+<summary><strong>recentlyViewedStore</strong> — <code>src/store/recentlyViewedStore.ts</code></summary>
 
-- Reorganized flat component structure into domain folders (`layout/`, `profile/`, `search/`, `shortlist/`, `ui/`)
-- Extracted formatting logic into `src/lib/format.ts` (was duplicated in 3+ places with slight inconsistencies)
-- Enabled `strict` mode in `tsconfig.app.json` (was off by default)
-- Proper TypeScript types for all profile shapes, store state, and component props
+Zustand store with `persist` middleware. Maintains an ordered array (most-recent first) capped at 10 entries. `push` de-duplicates before inserting.
 
 </details>
 
 <details>
-<summary><strong>6. Performance</strong></summary>
+<summary><strong>Skeleton</strong> — <code>src/components/ui/Skeleton.tsx</code></summary>
 
-- `ProfileCard` wrapped in `React.memo` — re-renders scoped to prop changes only
-- Search input debounced at 200ms before filter runs
-- `useMemo` for per-platform list and filtered results
-- Routes code-split per Vite defaults; profile JSON lazy-loaded via `import.meta.glob`
+Animated placeholder used at card level (grid loading) and at the profile detail level (data loading).
 
 </details>
 
 ---
 
-## Libraries Added
+## Application Flow
 
-| Library          | Reason                                                                |
-| ---------------- | --------------------------------------------------------------------- |
-| `zustand`        | Shortlist state management — required by the brief                    |
-| `lucide-react`   | Icon set (search, bookmark, platform indicators, UI chrome)           |
-| `framer-motion`  | Page transitions and micro-interactions                               |
-| `clsx`           | Conditional `className` composition                                   |
-| `vitest`         | Unit testing (test runner scaffolded, bonus item)                     |
-
-No full UI kit (e.g. shadcn/ui, MUI) was added — the app surface didn't justify the dependency weight.
-
----
-
-## Assumptions
-
-- The sample JSON files are the sole data source; no real API integration was assumed.
-- "Persistent after page refresh" means `localStorage` (no backend in scope). Zustand's `persist` middleware handles this.
-- Data normalization (missing `username` fields in YouTube records) is handled at the data-access layer, not in components.
-- Brand glyphs for Instagram / YouTube / TikTok are not in the current `lucide-react` release; generic platform-appropriate icons paired with text labels are used instead.
-
----
-
-## Trade-offs
-
-- **No automated tests shipped** — the assignment time box was tight; manual verification was done for all flows (search, filter, navigate, shortlist add/remove, refresh persistence, empty states, mobile layout). Vitest is wired up as a starting point.
-- **No deployment** — flagged as a bonus item; the build passes clean and is deploy-ready on Vercel/Netlify with zero config.
-- **No drag-to-reorder shortlist** — the removed `react-beautiful-dnd` dependency hints this may have been an original intent. Could be revisited with `@dnd-kit/core` (maintained, React 19 compatible).
-- **Static routing pattern kept** — `react-router-dom` + `import.meta.glob` from the starter was retained rather than introducing a data-fetching layer, since data here is local and static.
+```
+/ (SearchPage)
+├── Platform tab selected → loads platform JSON via profileLoader
+├── Search input → debounced → filters profile list in useMemo
+├── Recently Viewed strip → reads recentlyViewedStore
+├── ProfileCard clicked
+│   ├── navigates to /profile/:username
+│   └── writes to recentlyViewedStore
+│
+/profile/:username (ProfileDetailPage)
+├── Loads profile detail JSON
+├── Displays stats (followers, engagement rate, engagements)
+├── Displays Estimated Sponsorship Cost panel
+├── ShortlistButton → reads/writes shortlistStore
+└── Back button → returns to / preserving search state
+│
+/shortlist (ShortlistPage)
+├── Reads shortlistStore
+├── Renders saved profiles with remove action
+└── Empty state → link back to /
+```
 
 ---
 
 ## Scripts
 
-| Command           | Description                      |
-| ----------------- | -------------------------------- |
-| `npm run dev`     | Start development server (Vite)  |
-| `npm run build`   | Type-check + production build    |
-| `npm run preview` | Preview production build locally |
-| `npm run lint`    | Run ESLint                       |
-| `npm test`        | Run Vitest test suite            |
+Verified against `package.json`:
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start Vite development server at `localhost:5173` |
+| `npm run build` | Type-check (`tsc -b`) then build to `dist/` |
+| `npm run preview` | Serve the `dist/` build locally |
+| `npm run lint` | Run ESLint across the project |
+| `npm test` | Run tests via `scripts/run-tests.cjs` (Vitest) |
+
+---
+
+## What Changed From the Starter
+
+<details>
+<summary><strong>Bugs fixed (8 issues)</strong></summary>
+
+- **`npm install` was broken.** `react-beautiful-dnd` was in dependencies but never imported, and its peer-dep range is incompatible with React 19. Removed.
+- **Case-sensitive search.** Username matching was case-sensitive, full-name matching wasn't. Both now use consistent lowercase comparison.
+- **Engagement Rate off by 100×.** The detail page computed `rate * 10000` inline instead of using the correct `rate * 100` formatter.
+- **"Engagements" stat used the wrong formatter.** The engagement-*rate* formatter was called on the engagement-*count* value.
+- **Profiles rendered `@undefined`.** YouTube records only have `handle`, not `username`. Cards and routing now fall back to `handle`, then `user_id`.
+- **Missing `alt` attributes.** All `<img>` tags now have descriptive alt text; broken URLs show a fallback placeholder.
+- **Stale data flash on fast navigation.** The detail page never reset loading state on route param change. Fixed with a cancellation guard.
+- **`target="_blank"` missing `rel="noopener noreferrer"`.**
+
+</details>
+
+<details>
+<summary><strong>Libraries added</strong></summary>
+
+| Library | Reason |
+| --- | --- |
+| `zustand` | Required by the assignment brief for shortlist state |
+| `framer-motion` | Page transitions and card micro-interactions |
+| `lucide-react` | Icon set for search, bookmark, and platform indicators |
+| `clsx` | Conditional className composition |
+
+No UI kit (shadcn/ui, MUI, etc.) was added — the app surface didn't warrant the dependency weight.
+
+</details>
 
 ---
 
 ## Future Improvements
 
 - Automated component and store unit tests (Vitest + Testing Library)
-- Deployment to Vercel or Netlify with live URL
-- Drag-to-reorder shortlist entries (`@dnd-kit/core`)
-- Shortlist sorting/filtering (by platform, follower count)
-- Deeper animations and micro-interactions (card hover, page transitions)
-- Full accessibility audit (axe-core / Storybook a11y addon)
-- CI/CD pipeline (GitHub Actions: lint + build on PR)
+- Drag-to-reorder shortlist entries (`@dnd-kit/core` — maintained React 19 compatible alternative to the removed `react-beautiful-dnd`)
+- Shortlist sorting/filtering by platform or follower count
+- GitHub Actions CI: lint + build on every push
+- Full accessibility audit (axe-core)
+
+---
+
+## License
+
+[MIT](LICENSE)
 
 ---
 
 ## Author
 
-**Rahul Vaidhya**
-B.Tech Computer Science, Shiv Nadar University (2028)
+**Rahul Vaidhya**  
+B.Tech Computer Science · Shiv Nadar University (Class of 2028)
 
 - GitHub: [github.com/rahul-vaidhya](https://github.com/rahul-vaidhya)
-- LinkedIn: [linkedin.com/in/rahul-vaidhya-322a5630b](https://linkedin.com/in/rahul-vaidhya-322a5630b)
+- LinkedIn: [linkedin.com/in/rahul-vaidhya-322a5630b](https://www.linkedin.com/in/rahul-vaidhya-322a5630b)
 
 ---
 
 <div align="center">
 
-Built with React 19 + TypeScript + Zustand · Submitted to Wobb AI — July 2026
+Built with React 19 · TypeScript · Zustand · Tailwind CSS v4 · Framer Motion
+
+Submitted to Wobb AI — July 2026
 
 </div>
