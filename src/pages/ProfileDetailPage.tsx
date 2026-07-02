@@ -187,6 +187,27 @@ export function ProfileDetailPage() {
             ))}
           </div>
 
+          {/* Pricing Estimation Section */}
+          {platform !== "unknown" && (
+            <MotionDiv
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-gradient-to-br from-violet-50/50 to-indigo-50/50 rounded-2xl p-4 border border-violet-100/70 mb-6"
+            >
+              <div className="flex items-center gap-2 mb-2 text-violet-700 font-bold text-sm">
+                <Coins className="w-4 h-4" />
+                <span>Estimated Sponsorship Cost</span>
+              </div>
+              <div className="text-2xl font-black text-violet-900 mb-1">
+                ${Math.round((detailedUser.followers / 1000) * (platform === "youtube" ? 12 : platform === "instagram" ? 8 : 4)).toLocaleString()} - ${Math.round((detailedUser.followers / 1000) * (platform === "youtube" ? 30 : platform === "instagram" ? 20 : 12)).toLocaleString()}
+              </div>
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                Calculated using market standard CPM rates for {getPlatformLabel(platform)} (${platform === "youtube" ? "12-$30" : platform === "instagram" ? "8-$20" : "4-$12"} per 1,000 followers). Actual cost may vary depending on content complexity and agent negotiation.
+              </p>
+            </MotionDiv>
+          )}
+
           <div className="flex flex-wrap items-center gap-3">
             {platform !== "unknown" && (
               <ShortlistButton platform={platform} profile={detailedUser} variant="full" />
